@@ -6,7 +6,7 @@ const loanApplicationSchema = Joi.object({
   termMonths: Joi.number().integer().positive().required(),
   purpose: Joi.string().allow('').optional(),
    branch_id: Joi.string().guid({ version: ['uuidv4'] }).required(),
-  saving_account_id: Joi.string().guid({ version: ['uuidv4'] }).required(),
+  // saving_account_id: Joi.string().guid({ version: ['uuidv4'] }).required(),
 });
 const loanApplicationUpdateSchema = Joi.object({
   principalAmount: Joi.number().positive().optional(),
