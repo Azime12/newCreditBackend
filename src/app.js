@@ -34,23 +34,46 @@ const app = express();
 deleteUnverifiedUsers();
 
 // CORS Setup
+// CORS Setup
 const allowedOrigins = [
-  "http://localhost:3000",
-  "https://createdi-and-saving-managmetn-front.vercel.app",
+  "http://localhost:3000", // Local development
+  "https://createdi-and-saving-managmetn-frontend-bzp07mj18.vercel.app", // Current production frontend
+  "https://createdi-and-saving-managmetn-front.vercel.app", // Your main domain (if different)
+  /https:\/\/createdi-and-saving-managmetn-frontend-.*\.vercel\.app/, // All similar Vercel deployments
+  /https:\/\/createdi-and-saving-management.*\.vercel\.app/ // Alternative spellings
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      // Check if the origin is in the allowed list
+      const isAllowed = allowedOrigins.some(allowedOrigin => {
+        if (typeof allowedOrigin === 'string') {
+          return origin === allowedOrigin;
+        } else if (allowedOrigin instanceof RegExp) {
+          return allowedOrigin.test(origin);
+        }
+        return false;
+      });
+
+      if (isAllowed) {
         callback(null, true);
       } else {
-        callback(new Error("CORS not allowed for this origin"));
+        console.warn(`CORS blocked for origin: ${origin}`);
+        callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
   })
 );
+
+// Handle preflight requests
+app.options('*', cors());
 
 // Middleware
 app.use(express.json());
