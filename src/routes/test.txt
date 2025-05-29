@@ -1,0 +1,665 @@
+one 
+const express = require("express");
+const router = express.Router();
+const accountNumberController = require("../controllers/accountNumberController");
+
+router.post("/", accountNumberController.createAccountNumber);
+router.get("/user/:userId", accountNumberController.getAccountNumbersByUser);
+router.get("/:accountId", accountNumberController.getAccountNumberById);
+router.delete("/:accountId", accountNumberController.deleteAccountNumber);
+
+module.exports = router;
+const express = require("express");
+const router = express.Router();
+
+const roleController = require("../controllers/roleController");
+const permissionController = require("../controllers/permissionController");
+const authController = require("../controllers/authController");
+const userController = require("../controllers/userControllers");
+const rolePermissionController = require("../controllers/rolePermissionController");
+const {
+  authenticate,
+  // authorizeRoles,
+  authorizePermissions,
+  // authorizeOwnership,
+} = require("../middlewares/authMiddleware");
+
+// const adminOnly = [authenticate, authorizeRoles("Admin")];
+
+// 🔐 Admin User Registration
+router.post(
+  "/register",
+  authenticate,
+  authorizePermissions("create_user"),
+  userController.adminUserRegister
+);
+
+// 🔹 Role Management
+router.post(
+  "/roles",
+  authenticate,
+  authorizePermissions("create_roles"),
+  roleController.createRole
+);
+router.get(
+  "/roles",
+  authenticate,
+  authorizePermissions("view_roles"),
+  roleController.getRoles
+);
+router.get(
+  "/roles/:id",
+  authenticate,
+  // authorizePermissions("view_roles"),
+  roleController.getRoleById
+);
+router.put(
+  "/roles/:id",
+  authenticate,
+  authorizePermissions("edit_roles"),
+  roleController.updateRole
+);
+router.delete(
+  "/roles/:id",
+  authenticate,
+  authorizePermissions("delete_roles"),
+  roleController.deleteRole
+);
+
+// 🔹 Permission Management
+router.post(
+  "/permissions",
+  authenticate,
+  authorizePermissions("create_permissions"),
+  permissionController.createPermission
+);
+router.get(
+  "/permissions",
+  authenticate,
+  authorizePermissions("view_permissions"),
+  permissionController.getPermissions
+);
+router.get(
+  "/permissions/:id",
+  authenticate,
+  authorizePermissions("view_permissions"),
+  permissionController.getPermissionById
+);
+router.put(
+  "/permissions/:id",
+  authenticate,
+  authorizePermissions("edit_permissions"),
+  permissionController.updatePermission
+);
+router.delete(
+  "/permissions/:id",
+  authenticate,
+  authorizePermissions("remove_permission"),
+  permissionController.deletePermission
+);
+
+// 🔹 Role & Permission Assignments
+router.post(
+  "/assign-role",
+  authenticate,
+  authorizePermissions("assign_roles_to_users"),
+  authController.assignRoleToUser
+);
+router.post(
+  "/assign-permission",
+  authenticate,
+  // authorizePermissions("assign_permission_to_roles"),
+  authController.assignPermissionToRole
+);
+
+// 🔹 Advanced Role-Permission Mapping
+router.post(
+  "/assign",
+  authenticate,
+  authorizePermissions("assign_permission_to_roles"),
+  rolePermissionController.assignPermissionToRole
+);
+router.delete(
+  "/roles/:roleId/permissions/:permissionId",
+  authenticate,
+  authorizePermissions("remove_permission"),
+  rolePermissionController.removePermissionFromRole
+);
+router.get(
+  "/roles/:roleId/permissions",
+  authenticate,
+  authorizePermissions("view_roles"),
+  rolePermissionController.getRolePermissions
+);
+router.get(
+  "/all-permissions",
+  authenticate,
+  authorizePermissions("view_permissions"),
+  rolePermissionController.getAllPermissions
+);
+
+module.exports = router;
+
+const express = require("express");
+const router = express.Router();
+const authController = require("../controllers/authController");
+const { socialAuthController } = require("../controllers/authController");
+
+
+// User Registration and Login
+router.post("/register", authController.registerUser);
+router.post("/login", authController.loginController);
+router.post("/social-login", socialAuthController);
+// Email Verification
+router.get("/verify-email", authController.verifyEmail);
+router.post("/resend-verification", authController.resendVerificationEmail);
+
+// Password Reset
+router.post("/request-reset", authController.handlePasswordResetRequest);
+router.post("/reset-password", authController.resetPasswordController);
+
+// OTP-based Authentication
+router.post("/request-otp", authController.requestOTP);
+router.post("/verify-otp", authController.verifyOTP);
+
+module.exports = router;
+const express = require("express");
+const router = express.Router();
+const branchController = require("../controllers/branchController");
+
+router.post("/", branchController.create);
+router.get("/", branchController.getAll);
+router.get("/:id", branchController.getOne);
+router.put("/:id", branchController.update);
+router.delete("/:id", branchController.remove);
+
+module.exports = router;
+
+const express = require('express');
+const router = express.Router();
+const {
+  createLoanApplication,
+  getLoanApplicationsByUser,
+  getLoanApplicationById,
+  updateLoanApplication,
+  updateLoanApplicationStatus, // ✅ fixed the name
+  deleteLoanApplication,
+  restoreLoanApplication,
+  getAllLoanApplications,
+  getApplicationStats // 💡 include this if you're exposing stats
+} = require('../controllers/loanApplicationController');
+
+const { authenticate, authorize } = require('../middlewares/authMiddleware');
+
+// 🔐 Apply authentication to all routes
+router.use(authenticate);
+
+// 📌 Loan Application routes
+router.post('/', authorize(['loanApplication.create']), createLoanApplication);
+router.get('/', authorize(['loanApplication.read']), getAllLoanApplications);
+router.get('/user/:userId', authorize(['loanApplication.read']), getLoanApplicationsByUser);
+router.get('/:id', authorize(['loanApplication.read']), getLoanApplicationById);
+router.put('/:id', authorize(['loanApplication.update']), updateLoanApplication);
+router.patch('/:id/status', authorize(['loanApplication.approve']), updateLoanApplicationStatus); // ✅ corrected here
+router.delete('/:id', authorize(['loanApplication.delete']), deleteLoanApplication);
+router.post('/:id/restore', authorize(['loanApplication.restore']), restoreLoanApplication);
+
+// 📊 Optional: Loan Application Stats
+router.get('/stats', authorize(['loanApplication.read']), getApplicationStats); // optional route if needed
+
+module.exports = router;
+const express = require("express");
+const router = express.Router();
+const branchController = require("../controllers/branchController");
+
+router.post("/", branchController.create);
+router.get("/", branchController.getAll);
+router.get("/:id", branchController.getOne);
+router.put("/:id", branchController.update);
+router.delete("/:id", branchController.remove);
+
+module.exports = router;
+const express = require('express');
+const router = express.Router();
+const {
+  createLoanApplication,
+  getLoanApplicationsByUser,
+  getLoanApplicationById,
+  updateLoanApplication,
+  updateLoanApplicationStatus, // ✅ fixed the name
+  deleteLoanApplication,
+  restoreLoanApplication,
+  getAllLoanApplications,
+  getApplicationStats // 💡 include this if you're exposing stats
+} = require('../controllers/loanApplicationController');
+
+const { authenticate, authorize } = require('../middlewares/authMiddleware');
+
+// 🔐 Apply authentication to all routes
+router.use(authenticate);
+
+// 📌 Loan Application routes
+router.post('/', authorize(['loanApplication.create']), createLoanApplication);
+router.get('/', authorize(['loanApplication.read']), getAllLoanApplications);
+router.get('/user/:userId', authorize(['loanApplication.read']), getLoanApplicationsByUser);
+router.get('/:id', authorize(['loanApplication.read']), getLoanApplicationById);
+router.put('/:id', authorize(['loanApplication.update']), updateLoanApplication);
+router.patch('/:id/status', authorize(['loanApplication.approve']), updateLoanApplicationStatus); // ✅ corrected here
+router.delete('/:id', authorize(['loanApplication.delete']), deleteLoanApplication);
+router.post('/:id/restore', authorize(['loanApplication.restore']), restoreLoanApplication);
+
+// 📊 Optional: Loan Application Stats
+router.get('/stats', authorize(['loanApplication.read']), getApplicationStats); // optional route if needed
+
+module.exports = router;
+const express = require('express');
+const router = express.Router();
+const loanPaymentController = require('../controllers/loanPaymentController');
+const {authenticate} = require('../middlewares/authMiddleware');
+
+router.post('/', authenticate, loanPaymentController.createPayment);
+router.get('/', authenticate, loanPaymentController.getPayments);
+router.get('/:paymentId', authenticate, loanPaymentController.getPayment);
+router.patch('/:paymentId', authenticate, loanPaymentController.updatePayment);
+router.post('/:paymentId/reverse', authenticate, loanPaymentController.reversePayment);
+router.patch('/:paymentId/verify', authenticate, loanPaymentController.verifyPayment);
+
+module.exports = router;
+const express = require('express');
+const router = express.Router();
+const {
+  createLoan,
+  getLoansByCustomer,
+  getLoanById,
+  getLoanByNumber,
+  getAllLoans,
+  updateLoan,
+  updateLoanStatus,
+  deleteLoan,
+  restoreLoan,
+  calculateLoanBalance
+} = require('../controllers/loanController');
+const { authenticate, authorize } = require('../middlewares/authMiddleware');
+const {
+  loanSchema,
+  loanUpdateSchema,
+  loanStatusUpdateSchema
+} = require('../validators/loanValidation');
+
+// Apply authentication to all routes
+router.use(authenticate);
+
+// Loan routes
+router.post(
+  '/',
+  authorize(['loan.create']),
+  createLoan
+);
+
+router.get(
+  '/customer/:customerId',
+  authorize(['loan.read']),
+  getLoansByCustomer
+);
+
+router.get(
+  '/',
+  authorize(['loan.read']),
+  getAllLoans
+);
+
+router.get(
+  '/:id',
+  authorize(['loan.read']),
+  getLoanById
+);
+
+router.get(
+  '/number/:loanNumber',
+  authorize(['loan.read']),
+  getLoanByNumber
+);
+
+router.put(
+  '/:id',
+  authorize(['loan.update']),
+  updateLoan
+);
+
+router.patch(
+  '/:id/status',
+  authorize(['loan.approve']),
+  updateLoanStatus
+);
+
+router.delete(
+  '/:id',
+  authorize(['loan.delete']),
+  deleteLoan
+);
+
+router.post(
+  '/:id/restore',
+  authorize(['loan.restore']),
+  restoreLoan
+);
+
+router.get(
+  '/:id/balance',
+  authorize(['loan.read']),
+  calculateLoanBalance
+);
+
+module.exports = router;
+const express = require('express');
+const router = express.Router();
+const {
+  createLoan,
+  getLoansByCustomer,
+  getLoanById,
+  getLoanByNumber,
+  getAllLoans,
+  updateLoan,
+  updateLoanStatus,
+  deleteLoan,
+  restoreLoan,
+  calculateLoanBalance
+} = require('../controllers/loanController');
+const { authenticate, authorize } = require('../middlewares/authMiddleware');
+const {
+  loanSchema,
+  loanUpdateSchema,
+  loanStatusUpdateSchema
+} = require('../validators/loanValidation');
+
+// Apply authentication to all routes
+router.use(authenticate);
+
+// Loan routes
+router.post(
+  '/',
+  authorize(['loan.create']),
+  createLoan
+);
+
+router.get(
+  '/customer/:customerId',
+  authorize(['loan.read']),
+  getLoansByCustomer
+);
+
+router.get(
+  '/',
+  authorize(['loan.read']),
+  getAllLoans
+);
+
+router.get(
+  '/:id',
+  authorize(['loan.read']),
+  getLoanById
+);
+
+router.get(
+  '/number/:loanNumber',
+  authorize(['loan.read']),
+  getLoanByNumber
+);
+
+router.put(
+  '/:id',
+  authorize(['loan.update']),
+  updateLoan
+);
+
+router.patch(
+  '/:id/status',
+  authorize(['loan.approve']),
+  updateLoanStatus
+);
+
+router.delete(
+  '/:id',
+  authorize(['loan.delete']),
+  deleteLoan
+);
+
+router.post(
+  '/:id/restore',
+  authorize(['loan.restore']),
+  restoreLoan
+);
+
+router.get(
+  '/:id/balance',
+  authorize(['loan.read']),
+  calculateLoanBalance
+);
+
+module.exports = router;
+const express = require("express");
+const router = express.Router();
+const loanTypeController = require("../controllers/loanTypeController");
+
+router.post("/", loanTypeController.create);
+router.get("/", loanTypeController.getAll);
+router.get("/:id", loanTypeController.getById);
+router.put("/:id", loanTypeController.update);
+router.delete("/:id", loanTypeController.delete);
+router.post("/:id/restore", loanTypeController.restore);
+router.get("/stats/loan-types", loanTypeController.getLoanTypeStats);
+
+module.exports = router;
+const express = require("express");
+const {
+  getAllLogs,
+  getLogsByUserId,
+  getLogsByCategory,
+  getLogsByDate,
+} = require("../controllers/LogController");
+
+const router = express.Router();
+
+router.get("/", getAllLogs); // Get all logs (with pagination)
+router.get("/user/:userId", getLogsByUserId); // Get logs by user ID
+router.get("/category/:category", getLogsByCategory); // Get logs by category
+router.get("/date", getLogsByDate); // Get logs filtered by date range
+
+module.exports = router;
+const express = require("express");
+const router = express.Router();
+const savingAccountController = require("../controllers/savingAccountController");
+
+// Apply authentication middleware to all routes
+
+
+// Account Management Routes
+router.post(
+    "/",
+    savingAccountController.createAccount
+);
+
+router.get(
+    "/",
+    savingAccountController.getAllAccounts
+);
+
+router.get(
+    "/user",
+    savingAccountController.getUserAccounts
+);
+
+router.get(
+    "/:accountId",
+    savingAccountController.getAccountDetails
+);
+
+router.put(
+    "/status",
+    savingAccountController.updateStatus
+);
+
+// Financial Operations Routes
+router.post(
+    "/deposit",
+    savingAccountController.deposit
+);
+
+router.post(
+    "/withdraw",
+    savingAccountController.withdraw
+);
+
+router.post(
+    "/transfer",
+    savingAccountController.transfer
+);
+
+// Account Information Routes
+router.get(
+    "/:accountId/balance",
+    savingAccountController.getBalance
+);
+
+router.get(
+    "/:accountId/transactions",
+    savingAccountController.getTransactions
+);
+
+// Admin-only Routes
+router.post(
+    "/:accountId/calculate-interest",
+    savingAccountController.calculateAccountInterest
+);
+
+module.exports = router;
+
+const express = require("express");
+const router = express.Router();
+const savingInterestController = require("../controllers/savingInterestController");
+
+// Add interest to a saving account
+router.post("/add", savingInterestController.addInterest);
+
+// Get all interests for a specific account
+router.get("/:savingAccountId", savingInterestController.getInterestsByAccount);
+
+// Get all interest records
+router.get("/", savingInterestController.getAllInterests);
+
+module.exports = router;
+// routes/savingTypeRoutes.js
+const express = require('express');
+const router = express.Router();
+const savingTypeController = require('../controllers/savingTypeController');
+
+// POST: Create a new saving type
+router.post('/', savingTypeController.createSavingType);
+
+// GET: Get all saving types
+router.get('/', savingTypeController.getAllSavingTypes);
+
+// GET: Get a saving type by ID
+router.get('/:id', savingTypeController.getSavingTypeById);
+
+// PUT: Update a saving type by ID
+router.put('/:id', savingTypeController.updateSavingType);
+
+// DELETE: Delete a saving type by ID
+router.delete('/:id', savingTypeController.deleteSavingType);
+
+module.exports = router;
+const express = require("express");
+const router = express.Router();
+const controller = require("../controllers/systemSettingController");
+
+router.get("/", controller.getSettings);
+router.put("/", controller.updateSettings);
+
+module.exports = router;
+const express = require("express");
+const router = express.Router();
+const transactionController = require("../controllers/transactionController");
+
+router.post("/", transactionController.createTransaction); // Create a new transaction
+router.get("/:userId", transactionController.getTransactionsByUser); // Get transactions by userId
+router.put("/:transactionId/status", transactionController.updateTransactionStatus); // Update transaction status
+
+module.exports = router;
+
+const express = require("express");
+const router = express.Router();
+const upload = require("../utils/upload");
+
+const {
+  authenticate,
+  authorizeRoles,
+  authorizeOwnership
+} = require("../middlewares/authMiddleware");
+
+// User Controllers
+const {
+  changePassword,
+  getAllUsers,
+  getUserById,
+  getUserByEmail,
+  getUserByPhone,
+  deleteUser,
+  activateAndDeactivateUser,
+  getVerifiedUsers,
+  getUnverifiedUsers,
+  searchUsersController,
+  updateUser
+} = require("../controllers/userControllers");
+const  { assignRoleToUser } =require("../controllers/authController");
+
+// Profile Controllers
+const {
+  createOrUpdateProfile,
+  getProfile,
+  patchProfile,
+  getProfileCompletionStatus
+} = require("../controllers/userProfileController");
+
+// Apply authentication middleware to all routes
+// router.use(authenticate);
+
+// User Profile Routes
+router.post(
+  "/profile/:userId",
+  upload.fields([
+    { name: "profilePhoto", maxCount: 1 },
+    { name: "idFrontPhoto", maxCount: 1 },
+    { name: "idBackPhoto", maxCount: 1 }
+  ]),
+  createOrUpdateProfile
+);
+
+router.get("/profile/:userId", getProfile);
+router.patch("/profile/:userId", patchProfile);
+router.get("/profile/isComplete/:userId"  , getProfileCompletionStatus);
+
+// User Management Routes
+router.post("/change-password", changePassword);
+router.post("/assign-rolt-to-user", assignRoleToUser);
+
+router.get("/search", searchUsersController);
+router.patch("/:userId",  updateUser);
+router.get("/:userId",  getUserById);
+
+// Admin-only routes
+// router.use(authorizeRoles("Admin"));
+router.get("/", getAllUsers);
+router.get("/email/:email", getUserByEmail);
+router.get("/phone/:phone", getUserByPhone);
+router.delete("/:userId", deleteUser);
+router.put("/:userId/status", activateAndDeactivateUser);
+router.get("/verified", getVerifiedUsers);
+router.get("/unverified", getUnverifiedUsers);
+
+module.exports = router;
+
+this must be the defauslt role 
+    const roles = ["Customer", "Admin", "LoanOfficer", "Accountant"];
+permistion table must seed all the above data but  based all the routes  but thier route that does not need routes . and all the permistion must be assign to the defualut role  or diviston admian have all give me 
+to seed and permistion and to make all the routes for each routes file must be permistion based

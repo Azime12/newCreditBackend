@@ -1,0 +1,77 @@
+const { NotificationTemplate } = require("../models");
+const templates = {
+  credit_related: {
+    payment_reminder: "Dear {user}, your payment of {amount} for {credit_type} is due on {due_date}.",
+    late_payment_alert: "Your payment for {credit_type} is {days_overdue} days overdue. Please pay {amount} to avoid late fees.",
+    credit_limit_alert: "Warning! You’ve used {percentage}% of your credit limit on {credit_type}.",
+    credit_score_update: "Your credit score has {change} by {points} points this month!",
+    interest_rate_change: "The interest rate on your {credit_type} has changed from {old_rate}% to {new_rate}%.",
+    credit_card_expiry_reminder: "Your {credit_type} will expire on {expiry_date}. Please update your card details."
+  },
+  savings_related: {
+    savings_goal_progress: "You’ve saved {saved_amount} out of {goal_amount} for your {goal_name}.",
+    savings_goal_achieved: "Congratulations! You’ve successfully saved {goal_amount} for your {goal_name}.",
+    low_savings_balance_alert: "Alert! Your {account_type} balance is {balance}. Consider adding funds to avoid fees.",
+    automatic_transfer_confirmation: "{amount} has been transferred to your {savings_account}.",
+    interest_earned_notification: "You’ve earned {interest_amount} in interest on your {account_type} this month."
+  },
+  transaction_related: {
+    transaction_confirmation: "You’ve spent {amount} at {merchant} on {date}.",
+    large_transaction_alert: "A transaction of {amount} was made from your account. Was this you?",
+    recurring_payment_alert: "Your {subscription_name} subscription of {amount} will be charged on {date}.",
+    failed_transaction_alert: "Your payment of {amount} to {vendor} failed due to {reason}."
+  },
+  budget_related: {
+    budget_exceeded_alert: "You’ve spent {spent_amount} on {category} this month, exceeding your budget of {budget_amount}.",
+    budget_progress_update: "You’ve spent {percentage}% of your {budget_amount} monthly budget.",
+    budget_reset_reminder: "Your monthly budget has been reset. You have {budget_amount} available for {month}."
+  },
+  security_related: {
+    login_alert: "Your account was accessed from a new device in {location} on {date}.",
+    password_change_confirmation: "Your password was successfully changed on {date}.",
+    suspicious_activity_alert: "We detected unusual activity on your account. Please verify your recent transactions.",
+    account_lockout_notification: "Your account has been locked after {failed_attempts} failed login attempts. Please reset your password."
+  },
+  system_related: {
+    system_update: "A new version of the app is available. Update now to enjoy new features!",
+    scheduled_maintenance_alert: "Our system will be undergoing maintenance on {date} from {start_time} to {end_time}.",
+    feature_announcement: "We’ve launched a new {feature_name}! Start using it today."
+  },
+  promotional_educational: {
+    financial_tip: "Did you know? {tip}.",
+    promotional_offer: "Get {offer_details} with {credit_type}.",
+    savings_challenge: "Join our {challenge_name} and save {amount} this month!"
+  },
+  custom_notifications: {
+    holiday_greeting: "Happy {holiday}! Don’t forget to budget for your holiday spending.",
+    birthday_wish: "Happy Birthday! Here’s a {bonus_amount} bonus for your {account_type}.",
+    milestone_celebration: "Congratulations on {milestone}! You’ve saved {total_savings} so far."
+  },
+  debt_management: {
+    debt_repayment_progress: "You’ve paid off {percentage}% of your {debt_amount} loan. Keep it up!",
+    debt_consolidation_offer: "Struggling with multiple debts? Explore our debt consolidation options.",
+    early_repayment_benefit: "Repay your loan early and save {savings_amount} in interest!"
+  },
+  investment_related: {
+    portfolio_update: "Your portfolio value has {change} by {percentage}% this month.",
+    dividend_alert: "You’ve received a dividend of {amount} from {stock_name}.",
+    market_alert: "The stock market is {change} by {percentage}% today. Check your portfolio."
+  }
+};
+
+const insertTemplates = async () => {
+  try {
+    for (const [type, subtypes] of Object.entries(templates)) {
+      for (const [subtype, template] of Object.entries(subtypes)) {
+        await NotificationTemplate.create({ type, subtype, template });
+        console.log(`Inserted template: ${type} - ${subtype}`);
+      }
+    }
+    console.log("All templates inserted successfully!");
+  } catch (error) {
+    console.error("Error inserting templates:", error);
+  }
+};
+
+// Run the script
+insertTemplates();

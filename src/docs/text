@@ -1,0 +1,433 @@
+const { DataTypes } = require("sequelize");
+const sequelize = require("../config/database");
+
+const AccountNumber = sequelize.define(
+    "AccountNumber",
+    {
+        id: {
+            type: DataTypes.UUID,
+            defaultValue: DataTypes.UUIDV4, 
+            allowNull: false,
+            primaryKey: true,
+        },
+        accountNumber: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            unique: true, 
+        },
+        userId: {
+            type: DataTypes.UUID, 
+            allowNull: false,
+            references: {
+                model: "Users", 
+                key: "id",
+            },
+            onDelete: "CASCADE", 
+        },
+    },
+    {
+        tableName: "account_numbers",
+        timestamps: true, 
+        underscored: true, 
+    }
+);
+
+module.exports = AccountNumber;
+const Joi = require("joi");
+
+const accountNumberSchema = Joi.object({
+    userId: Joi.string().uuid().required().messages({
+        "string.empty": "User ID is required.",
+        "string.uuid": "Invalid User ID format.",
+    }), 
+    accountNumber: Joi.string()
+        .pattern(/^\d+$/)
+        .optional()
+        .messages({
+            "string.pattern.base": "Account Number must be numeric.",
+        }),
+    autoGenerate: Joi.boolean().required().messages({
+        "boolean.base": "autoGenerate must be a boolean.",
+    }),
+});
+
+module.exports = { accountNumberSchema };
+
+const AccountNumber = require("../models/AccountNumberModel");
+const User = require("../models/userModel"); // Ensure the correct path to User model
+
+/**
+ * Create a new account number for a user
+ */
+const createAccountNumber = async (userId, accountNumber) => {
+    // 🔹 Check if the user exists
+    const userExists = await User.findOne({ where: { id: userId } });
+
+    if (!userExists) {
+        throw new Error("Invalid user ID. User does not exist.");
+    }
+
+    // 🔹 Check if the account number already exists
+    const existingAccount = await AccountNumber.findOne({
+        where: { accountNumber },
+    });
+
+    if (existingAccount) {
+        throw new Error("Account number already exists.");
+    }
+
+    // ✅ Create a new account number if validations pass
+    return await AccountNumber.create({ userId, accountNumber });
+};
+
+/**
+ * Get account numbers by user ID
+ */
+const getAccountNumbersByUser = async (userId) => {
+    return await AccountNumber.findAll({ where: { userId } });
+};
+
+/**
+ * Get a single account number by ID
+ */
+const getAccountNumberById = async (id) => {
+    console.log("Fetching account by ID:", id);
+    
+    const account = await AccountNumber.findOne({
+        where: { id },
+    });
+
+    if (!account) {
+        console.log("No account found for ID:", id);
+    }
+
+    return account;
+};
+
+
+/**
+ * Delete an account number
+ */
+const deleteAccountNumber = async (id) => {
+    console.log("id",id)
+    return await AccountNumber.destroy({ where: { id } });
+};
+
+module.exports = {
+    createAccountNumber,
+    getAccountNumbersByUser,
+    getAccountNumberById,
+    deleteAccountNumber,
+};
+const express = require("express");
+const router = express.Router();
+const accountNumberController = require("../controllers/accountNumberController");
+
+router.post("/", accountNumberController.createAccountNumber);
+router.get("/user/:userId", accountNumberController.getAccountNumbersByUser);
+router.get("/:accountId", accountNumberController.getAccountNumberById);
+router.delete("/:accountId", accountNumberController.deleteAccountNumber);
+
+module.exports = router;const accountNumberService = require("../services/accountNumberService");
+const { generateAccountNumber } = require("../utils/generateAccountNumber");
+const { accountNumberSchema } = require("../validators/accountNumberValidator");
+
+/**
+ * Create a new account number
+ */
+const createAccountNumber = async (req, res) => {
+    try {
+        // Validate input data
+        if (req.body.accountNumber === '') {
+            delete req.body.accountNumber;  
+          }
+          
+        const { error } = accountNumberSchema.validate(req.body);
+        if (error) {
+            return res.status(400).json({ message: error.details[0].message });
+        }
+
+        let creAccountNumber = "";
+        const { userId, accountNumber, autoGenerate } = req.body;
+
+        // Generate account number if autoGenerate is true
+        if (autoGenerate) {
+            creAccountNumber = await generateAccountNumber(userId);
+        } else {
+            creAccountNumber = accountNumber;
+        }
+
+        // Ensure account number is valid   
+        if (!creAccountNumber) {
+            return res.status(400).json({ message: "Something went wrong. Please try again with a correct account number." });
+        }
+       // Create the new account number
+        const newAccountNumber = await accountNumberService.createAccountNumber(userId, creAccountNumber);
+         res.status(201).json({
+            sucess:true,
+            message: "Account number created successfully.",
+            accountNumber: newAccountNumber,
+        });
+    } catch (error) {
+        console.error("Error creating account number:", error);
+        res.status(500).json({ message: "Error creating account number", error: error.message });
+    }
+};
+
+
+
+
+
+/**
+ * Get all account numbers for a user
+ */
+const getAccountNumbersByUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const accounts = await accountNumberService.getAccountNumbersByUser(userId);
+        res.status(200).json(accounts);
+    } catch (error) {
+        res.status(500).json({ message: "Error retrieving account numbers", error: error.message });
+    }
+};
+
+/**
+ * Get a single account number by ID
+ */
+const getAccountNumberById = async (req, res) => {
+    try {
+        const { accountId } = req.params;
+        console.log("Requested Account ID:", accountId);
+
+        if (!accountId) {
+            return res.status(400).json({ message: "Account ID is required." });
+        }
+
+        const account = await accountNumberService.getAccountNumberById(accountId);
+
+        if (!account) {
+            return res.status(404).json({ message: "Account number not found" });
+        }
+
+        res.status(200).json(account);
+    } catch (error) {
+        console.error("Error retrieving account number:", error);
+        res.status(500).json({ message: "Error retrieving account number", error: error.message });
+    }
+};
+
+
+/**
+ * Delete an account number
+ */
+const deleteAccountNumber = async (req, res) => {
+    try {
+        const { accountId } = req.params;
+        const deleted = await accountNumberService.deleteAccountNumber(accountId);
+
+        if (!deleted) {
+            return res.status(404).json({ message: "Account number not found" });
+        }
+
+        res.status(200).json({ message: "Account number deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Error deleting account number", error: error.message });
+    }
+};
+
+module.exports = {
+    createAccountNumber,
+    getAccountNumbersByUser,
+    getAccountNumberById,
+    deleteAccountNumber,
+};
+
+
+const AccountNumber = require("../models/AccountNumberModel");
+const User = require("../models/userModel"); // Ensure the correct path to User model
+
+/**
+ * Create a new account number for a user
+ */
+const createAccountNumber = async (userId, accountNumber) => {
+    // 🔹 Check if the user exists
+    const userExists = await User.findOne({ where: { id: userId } });
+
+    if (!userExists) {
+        throw new Error("Invalid user ID. User does not exist.");
+    }
+
+    // 🔹 Check if the account number already exists
+    const existingAccount = await AccountNumber.findOne({
+        where: { accountNumber },
+    });
+
+    if (existingAccount) {
+        throw new Error("Account number already exists.");
+    }
+
+    // ✅ Create a new account number if validations pass
+    return await AccountNumber.create({ userId, accountNumber });
+};
+
+/**
+ * Get account numbers by user ID
+ */
+const getAccountNumbersByUser = async (userId) => {
+    return await AccountNumber.findAll({ where: { userId } });
+};
+
+/**
+ * Get a single account number by ID
+ */
+const getAccountNumberById = async (id) => {
+    console.log("Fetching account by ID:", id);
+    
+    const account = await AccountNumber.findOne({
+        where: { id },
+    });
+
+    if (!account) {
+        console.log("No account found for ID:", id);
+    }
+
+    return account;
+};
+
+
+/**
+ * Delete an account number
+ */
+const deleteAccountNumber = async (id) => {
+    console.log("id",id)
+    return await AccountNumber.destroy({ where: { id } });
+};
+
+module.exports = {
+    createAccountNumber,
+    getAccountNumbersByUser,
+    getAccountNumberById,
+    deleteAccountNumber,
+};const express = require("express");
+const router = express.Router();
+const accountNumberController = require("../controllers/accountNumberController");
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Account Number
+ *     description: Endpoints for managing user account numbers.
+ */
+
+/**
+ * @swagger
+ * /account-numbers:
+ *   post:
+ *     tags:
+ *       - Account Number
+ *     summary: Create a new account number
+ *     description: Assigns a unique account number to a user.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: Unique identifier of the user
+ *               accountNumber:
+ *                 type: string
+ *                 description: Unique account number to be assigned
+ *     responses:
+ *       201:
+ *         description: Account number created successfully
+ *       400:
+ *         description: Invalid input or missing fields
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/account-numbers", accountNumberController.createAccountNumber);
+
+/**
+ * @swagger
+ * /account-numbers/user/{userId}:
+ *   get:
+ *     tags:
+ *       - Account Number
+ *     summary: Get account number by user ID
+ *     description: Fetches the account number(s) associated with a specific user.
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Unique identifier for the user
+ *     responses:
+ *       200:
+ *         description: Account number retrieved successfully
+ *       404:
+ *         description: No account number found for this user
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/account-numbers/user/:userId", accountNumberController.getAccountNumberByUser);
+
+/**
+ * @swagger
+ * /account-numbers/{accountId}:
+ *   get:
+ *     tags:
+ *       - Account Number
+ *     summary: Get account number by ID
+ *     description: Fetches a specific account number by its unique ID.
+ *     parameters:
+ *       - in: path
+ *         name: accountId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Unique identifier for the account number
+ *     responses:
+ *       200:
+ *         description: Account number retrieved successfully
+ *       404:
+ *         description: Account number not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/account-numbers/:accountId", accountNumberController.getAccountNumberById);
+
+/**
+ * @swagger
+ * /account-numbers/{accountId}:
+ *   delete:
+ *     tags:
+ *       - Account Number
+ *     summary: Delete an account number
+ *     description: Removes an account number from the system.
+ *     parameters:
+ *       - in: path
+ *         name: accountId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Unique identifier for the account number
+ *     responses:
+ *       200:
+ *         description: Account number deleted successfully
+ *       404:
+ *         description: Account number not found
+ *       500:
+ *         description: Internal server error
+ */
+router.delete("/account-numbers/:accountId", accountNumberController.deleteAccountNumber);
+
+module.exports = router;
+give me like this my working api that working create code so give like for loand applicaiotn 
