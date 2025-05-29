@@ -321,7 +321,6 @@ const createLoanFromApplication = async (application) => {
       
       // References
       branch_id: application.branch_id,
-      // saving_account_id: application.saving_account_id,
     });
 
     return loan;
