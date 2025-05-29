@@ -14,7 +14,11 @@ const {
  */
 const createLoanApplication = async (req, res, next) => {
   try {
-    const { error, value } = loanApplicationSchema.validate(req.body);
+    // Create a copy of body without unwanted fields
+    const bodyWithoutExtraFields = {...req.body};
+    delete bodyWithoutExtraFields.saving_account_id;
+    
+    const { error, value } = loanApplicationSchema.validate(bodyWithoutExtraFields);
     if (error) {
       throw new AppError(error.details[0].message, 400);
     }

@@ -5,9 +5,9 @@ const loanApplicationSchema = Joi.object({
   principalAmount: Joi.number().positive().required(),
   termMonths: Joi.number().integer().positive().required(),
   purpose: Joi.string().allow('').optional(),
-   branch_id: Joi.string().guid({ version: ['uuidv4'] }).required(),
-  // saving_account_id: Joi.string().guid({ version: ['uuidv4'] }).required(),
-});
+  branch_id: Joi.string().guid({ version: ['uuidv4'] }).required(),
+}).options({ allowUnknown: true }); // This allows extra fields without validation
+
 const loanApplicationUpdateSchema = Joi.object({
   principalAmount: Joi.number().positive().optional(),
   termMonths: Joi.number().integer().positive().optional(),

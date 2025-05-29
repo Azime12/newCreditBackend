@@ -304,7 +304,7 @@ const createLoanFromApplication = async (application) => {
       principalAmount: principal,
       interestRate: interestRate,
       termMonths: application.termMonths,
-      monthlyPayment: parseFloat(monthlyPayment.toFixed(2)), // Ensure 2 decimal places
+      monthlyPayment: parseFloat(monthlyPayment.toFixed(2)),
       totalPayment: parseFloat(totalPayment.toFixed(2)),
       totalInterest: parseFloat(totalInterest.toFixed(2)),
       balance: principal, // Initial balance equals principal
@@ -320,7 +320,8 @@ const createLoanFromApplication = async (application) => {
       status: "active",
       
       // References
-      branch_id: application.branch_id,
+      branch_id: application.branch_id
+      // Removed saving_account_id field
     });
 
     return loan;
