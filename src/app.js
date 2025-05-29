@@ -22,7 +22,25 @@ const LoanRepaymetRoutes=require("./routes/loanPaymentRoutes");
 const loanRoutes = require('./routes/loanRoutes');
 const app = express();
 deleteUnverifiedUsers()
-app.use(cors()); 
+// app.use(cors()); 
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://createdi-and-saving-managmetn-front.vercel.app", // <- replace with actual Vercel frontend URL
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS not allowed for this origin"));
+      }
+    },
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); 
 app.use(logUserActivity);  
